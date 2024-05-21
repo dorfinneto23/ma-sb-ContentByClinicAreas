@@ -24,6 +24,36 @@ username = os.environ.get('sql_username')
 password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
+
+#  Function adding new entity to azure storage table 
+def add_row_to_storage_table(table_name, entity):
+    logging.info(f"starting add_row_to_storage_table function : table name: {table_name}, entity: {entity}")
+    """
+    Adds a new row to an Azure Storage Table.
+
+    Parameters:
+    - account_name: str, the name of the Azure Storage account
+    - account_key: str, the key for the Azure Storage account
+    - table_name: str, the name of the table
+    - entity: dict, the entity to add (must contain 'PartitionKey' and 'RowKey')
+    """
+    try:
+        # Create a TableServiceClient using the connection string
+        table_service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+        logging.info(f"add_row_to_storage_table function :Create a TableServiceClient")
+        # Get a TableClient
+        table_client = table_service_client.get_table_client(table_name)
+        logging.info(f"add_row_to_storage_table function :TableClient")
+        # Add the entity to the table
+        table_client.create_entity(entity=entity)
+        logging.info(f"add_row_to_storage_table:Entity added successfully.")
+    except ResourceExistsError:
+        logging.info(f"add_row_to_storage_table:The entity with PartitionKey '{entity['PartitionKey']}' and RowKey '{entity['RowKey']}' already exists.")
+    except Exception as e:
+        logging.info(f"add_row_to_storage_table:An error occurred: {e}")
+
+
+
 # Update field on specific entity/ row in storage table 
 def update_storage_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2,new_value2):
     """
