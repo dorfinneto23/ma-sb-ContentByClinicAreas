@@ -64,9 +64,9 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
             # Append the new records to the existing CSV content
             if existing_content_csv.strip():  # Check if existing content is not empty
                 logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity existing")
-                existing_content_io = io.StringIO(existing_content_csv)
+                existing_content_io = io.StringIO(existing_content_csv.replace('\\n', '\n'))
                 existing_csv_reader = csv.DictReader(existing_content_io)
-                combined_output = io.StringIO()
+                combined_output = io.StringIO(newline='')
                 combined_csv_writer = csv.DictWriter(combined_output, fieldnames=csv_reader.fieldnames)
                 combined_csv_writer.writeheader()
                 combined_csv_writer.writerows(existing_csv_reader)
