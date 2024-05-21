@@ -24,6 +24,34 @@ username = os.environ.get('sql_username')
 password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
+def get_content_analysis_csv(table_name, partition_key, row_key):
+    """
+    Retrieve the 'contentAnalysisCsv' field from the specified Azure Storage Table.
+
+    :param table_name: Name of the table.
+    :param partition_key: PartitionKey of the entity.
+    :param row_key: RowKey of the entity.
+    :param connection_string: Connection string for the Azure Storage account.
+    :return: The value of the 'contentAnalysisCsv' field or None if not found.
+    """
+    try:
+        # Create a TableServiceClient using the connection string
+        service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+
+        # Get a TableClient for the specified table
+        table_client = service_client.get_table_client(table_name=table_name)
+
+        # Retrieve the entity using PartitionKey and RowKey
+        entity = table_client.get_entity(partition_key=partition_key, row_key=row_key)
+
+        # Return the value of 'contentAnalysisCsv' field
+        encoded_content_csv = entity.get('contentAnalysisCsv')
+        retrieved_csv = encoded_content_csv.replace('\\n', '\n') 
+        return retrieved_csv
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
 
 #  Function adding new entity to azure storage table 
 def add_row_to_storage_table(table_name, entity):
@@ -47,10 +75,13 @@ def add_row_to_storage_table(table_name, entity):
         # Add the entity to the table
         table_client.create_entity(entity=entity)
         logging.info(f"add_row_to_storage_table:Entity added successfully.")
+        return "success"
     except ResourceExistsError:
         logging.info(f"add_row_to_storage_table:The entity with PartitionKey '{entity['PartitionKey']}' and RowKey '{entity['RowKey']}' already exists.")
+        return "Exists"
     except Exception as e:
         logging.info(f"add_row_to_storage_table:An error occurred: {e}")
+        return "Error"
 
 
 
@@ -104,3 +135,5 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     storageTable = message_data_dict['storageTable']
     pagenumber = message_data_dict['pagenumber']
     totalpages = message_data_dict['totalpages']
+    content_csv = get_content_analysis_csv("documents", caseid, doc_id)
+    logging.info(f"csv content: {content_csv}")
