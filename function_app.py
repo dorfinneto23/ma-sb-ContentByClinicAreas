@@ -83,7 +83,7 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
             # If the entity does not exist, create a new one
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity Not existing create new entity")
             # Encode the CSV string to preserve newlines
-            encoded_content_csv = final_content_csv.replace('\n', '\\n')
+            encoded_content_csv = new_content_csv.replace('\n', '\\n')
             new_entity = {
                 "PartitionKey": caseid,
                 "RowKey": row_key,
