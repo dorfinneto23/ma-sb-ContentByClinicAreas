@@ -24,7 +24,7 @@ username = os.environ.get('sql_username')
 password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
-
+#for each clinicArea the function create new entity or updates/appending  the entity with related csv row 
 def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
     logging.info(f"starting Csv_Consolidation_by_clinicArea function")
     # Create a TableServiceClient using the connection string
@@ -167,4 +167,4 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     totalpages = message_data_dict['totalpages']
     content_csv = get_content_analysis_csv("documents", caseid, doc_id)
     logging.info(f"csv content: {content_csv}")
-    Csv_Consolidation_by_clinicArea(content_csv,caseid,storageTable)
+    Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas")
