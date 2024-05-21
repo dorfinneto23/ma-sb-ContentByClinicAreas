@@ -29,5 +29,11 @@ app = func.FunctionApp()
 @app.service_bus_queue_trigger(arg_name="azservicebus", queue_name="clinicareasconsolidation",
                                connection="medicalanalysis_SERVICEBUS") 
 def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
-    logging.info('Python ServiceBuss Queue triggerr processed a message: %s',
-                azservicebus.get_body().decode('utf-8'))
+    message_data = azservicebus.get_body().decode('utf-8')
+    logging.info(f"Received messageesds: {message_data}")
+    message_data_dict = json.loads(message_data)
+    caseid = message_data_dict['caseid']
+    doc_id = message_data_dict['doc_id']
+    storageTable = message_data_dict['storageTable']
+    pagenumber = message_data_dict['pagenumber']
+    totalpages = message_data_dict['totalpages']
