@@ -24,6 +24,69 @@ username = os.environ.get('sql_username')
 password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
+
+def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
+    logging.info(f"starting Csv_Consolidation_by_clinicArea function")
+    # Create a TableServiceClient using the connection string
+    service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+
+    # Get a TableClient for the specified table
+    table_client = service_client.get_table_client(table_name=table_name)
+
+    # Reading the CSV data into a list of dictionaries
+    csv_reader = csv.DictReader(io.StringIO(csv_string))
+    records = list(csv_reader)
+    
+    # Group records by clinicalarea
+    grouped_records = {}
+    for record in records:
+        clinicalarea = record['clinicalarea']
+        if clinicalarea not in grouped_records:
+            grouped_records[clinicalarea] = []
+        grouped_records[clinicalarea].append(record)
+    
+    # Iterate over grouped records to update or insert into Azure Table Storage
+    for clinicalarea, records in grouped_records.items():
+        row_key = clinicalarea.replace(" ", "_")
+        
+        # Prepare the new CSV content
+        output = io.StringIO()
+        csv_writer = csv.DictWriter(output, fieldnames=csv_reader.fieldnames)
+        csv_writer.writeheader()
+        csv_writer.writerows(records)
+        new_content_csv = output.getvalue()
+
+        try:
+            # Try to get the existing entity
+            entity = table_client.get_entity(partition_key=caseid, row_key=row_key)
+            existing_content_csv = entity['contentCsv']
+            logging.info(f"fun:Csv_Consolidation_by_clinicArea:check if entity existing")
+            # Append the new records to the existing CSV content
+            if existing_content_csv.strip():  # Check if existing content is not empty
+                logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity existing")
+                existing_content_io = io.StringIO(existing_content_csv)
+                existing_csv_reader = csv.DictReader(existing_content_io)
+                combined_output = io.StringIO()
+                combined_csv_writer = csv.DictWriter(combined_output, fieldnames=csv_reader.fieldnames)
+                combined_csv_writer.writeheader()
+                combined_csv_writer.writerows(existing_csv_reader)
+                combined_csv_writer.writerows(records)
+                final_content_csv = combined_output.getvalue()
+            else:
+                final_content_csv = new_content_csv
+            entity['contentCsv'] = final_content_csv
+            table_client.update_entity(entity, mode=UpdateMode.REPLACE)
+            logging.info(f"fun:Csv_Consolidation_by_clinicArea:table updated")
+        except ResourceNotFoundError:
+            # If the entity does not exist, create a new one
+            logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity Not existing create new entity")
+            new_entity = {
+                "PartitionKey": caseid,
+                "RowKey": row_key,
+                "contentCsv": new_content_csv
+            }
+            table_client.create_entity(new_entity)
+
 def get_content_analysis_csv(table_name, partition_key, row_key):
     """
     Retrieve the 'contentAnalysisCsv' field from the specified Azure Storage Table.
@@ -51,39 +114,6 @@ def get_content_analysis_csv(table_name, partition_key, row_key):
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
-
-
-#  Function adding new entity to azure storage table 
-def add_row_to_storage_table(table_name, entity):
-    logging.info(f"starting add_row_to_storage_table function : table name: {table_name}, entity: {entity}")
-    """
-    Adds a new row to an Azure Storage Table.
-
-    Parameters:
-    - account_name: str, the name of the Azure Storage account
-    - account_key: str, the key for the Azure Storage account
-    - table_name: str, the name of the table
-    - entity: dict, the entity to add (must contain 'PartitionKey' and 'RowKey')
-    """
-    try:
-        # Create a TableServiceClient using the connection string
-        table_service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
-        logging.info(f"add_row_to_storage_table function :Create a TableServiceClient")
-        # Get a TableClient
-        table_client = table_service_client.get_table_client(table_name)
-        logging.info(f"add_row_to_storage_table function :TableClient")
-        # Add the entity to the table
-        table_client.create_entity(entity=entity)
-        logging.info(f"add_row_to_storage_table:Entity added successfully.")
-        return "success"
-    except ResourceExistsError:
-        logging.info(f"add_row_to_storage_table:The entity with PartitionKey '{entity['PartitionKey']}' and RowKey '{entity['RowKey']}' already exists.")
-        return "Exists"
-    except Exception as e:
-        logging.info(f"add_row_to_storage_table:An error occurred: {e}")
-        return "Error"
-
-
 
 # Update field on specific entity/ row in storage table 
 def update_storage_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2,new_value2):
@@ -137,3 +167,4 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     totalpages = message_data_dict['totalpages']
     content_csv = get_content_analysis_csv("documents", caseid, doc_id)
     logging.info(f"csv content: {content_csv}")
+    Csv_Consolidation_by_clinicArea(content_csv,caseid,storageTable)
