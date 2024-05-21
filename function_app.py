@@ -74,16 +74,19 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
                 final_content_csv = combined_output.getvalue()
             else:
                 final_content_csv = new_content_csv
-            entity['contentCsv'] = final_content_csv
+            # Encode the CSV string to preserve newlines
+            encoded_content_csv = final_content_csv.replace('\n', '\\n')
+            entity['contentCsv'] = encoded_content_csv
             table_client.update_entity(entity, mode=UpdateMode.REPLACE)
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:table updated")
         except ResourceNotFoundError:
             # If the entity does not exist, create a new one
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity Not existing create new entity")
+            encoded_content_csv = final_content_csv.replace('\n', '\\n')
             new_entity = {
                 "PartitionKey": caseid,
                 "RowKey": row_key,
-                "contentCsv": new_content_csv
+                "contentCsv": encoded_content_csv
             }
             table_client.create_entity(new_entity)
 
