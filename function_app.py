@@ -24,6 +24,43 @@ username = os.environ.get('sql_username')
 password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
+# Update field on specific entity/ row in storage table 
+def update_storage_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2,new_value2):
+    """
+    Updates a specific field of an entity in an Azure Storage Table.
+
+    Parameters:
+    - account_name: str, the name of the Azure Storage account
+    - account_key: str, the key for the Azure Storage account
+    - table_name: str, the name of the table
+    - partition_key: str, the PartitionKey of the entity
+    - row_key: str, the RowKey of the entity
+    - field_name: str, the name of the field to update
+    - new_value: the new value to set for the field
+    """
+    try:
+        # Create a TableServiceClient using the connection string
+        table_service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+
+        # Get a TableClient
+        table_client = table_service_client.get_table_client(table_name)
+
+        # Retrieve the entity
+        entity = table_client.get_entity(partition_key, row_key)
+
+        # Update the field
+        entity[field_name] = new_value
+        entity[field_name2] = new_value2
+
+        # Update the entity in the table
+        table_client.update_entity(entity, mode=UpdateMode.REPLACE)
+        logging.info(f"update_documents_entity_field:Entity updated successfully.")
+
+    except ResourceNotFoundError:
+        logging.info(f"The entity with PartitionKey '{partition_key}' and RowKey '{row_key}' was not found.")
+    except Exception as e:
+        logging.info(f"An error occurred: {e}")
+
 app = func.FunctionApp()
 
 @app.service_bus_queue_trigger(arg_name="azservicebus", queue_name="clinicareasconsolidation",
