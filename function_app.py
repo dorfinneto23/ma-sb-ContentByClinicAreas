@@ -11,6 +11,19 @@ from azure.data.tables import TableServiceClient, TableClient, UpdateMode # in o
 from azure.core.exceptions import ResourceExistsError, ResourceNotFoundError # in order to use azure storage table  exceptions 
 import csv #helping convert json to csv
 
+# Azure Blob Storage connection string
+connection_string_blob = os.environ.get('BlobStorageConnString')
+
+#Azure service bus connection string 
+connection_string_servicebus = os.environ.get('servicebusConnectionString')
+
+# Define connection details
+server = 'medicalanalysis-sqlserver.database.windows.net'
+database = 'medicalanalysis'
+username = os.environ.get('sql_username')
+password = os.environ.get('sql_password')
+driver= '{ODBC Driver 18 for SQL Server}'
+
 app = func.FunctionApp()
 
 @app.service_bus_queue_trigger(arg_name="azservicebus", queue_name="clinicareasconsolidation",
