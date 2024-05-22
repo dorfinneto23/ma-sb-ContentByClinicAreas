@@ -180,7 +180,7 @@ def update_entity_field(table_name, partition_key, row_key, field_name, new_valu
 
         # Update the entity in the table
         table_client.update_entity(entity, mode=UpdateMode.REPLACE)
-        logging.info(f"update_documents_entity_field:Entity updated successfully.")
+        logging.info(f"update_entity_field:Entity updated successfully.")
 
     except ResourceNotFoundError:
         logging.info(f"The entity with PartitionKey '{partition_key}' and RowKey '{row_key}' was not found.")
@@ -207,6 +207,6 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     update_entity_field("documents", caseid, doc_id, "status", 6)
     if pagenumber==totalpages: #if this is the last page 
         #update case status 
-        update_case_generic(caseid,"status",9) #update case status to 7 "content analysis done"
+        update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
 
 
