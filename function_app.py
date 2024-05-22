@@ -25,7 +25,7 @@ password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
 #for each clinicArea the function create new entity or updates/appending  the entity with related csv row 
-def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
+def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
     logging.info(f"starting Csv_Consolidation_by_clinicArea function")
     # Create a TableServiceClient using the connection string
     service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
@@ -43,6 +43,14 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name):
         clinicalarea = record['clinicalarea']
         if clinicalarea not in grouped_records:
             grouped_records[clinicalarea] = []
+        # Append the page number to the 'pages' column if it does not already exist
+        if 'pages' in record:
+            pages = record['pages'].split(', ')
+            if str(pagenumber) not in pages:
+                pages.append(str(pagenumber))
+            record['pages'] = ', '.join(pages)
+        else:
+            record['pages'] = str(pagenumber)
         grouped_records[clinicalarea].append(record)
     
     # Iterate over grouped records to update or insert into Azure Table Storage
@@ -171,4 +179,4 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     totalpages = message_data_dict['totalpages']
     content_csv = get_content_analysis_csv("documents", caseid, doc_id)
     logging.info(f"csv content: {content_csv}")
-    Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas")
+    Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas",pagenumber)
