@@ -24,6 +24,28 @@ username = os.environ.get('sql_username')
 password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
+
+# Generic Function to update case  in the 'cases' table
+def update_case_generic(caseid,field,value):
+    try:
+        # Establish a connection to the Azure SQL database
+        conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password)
+        cursor = conn.cursor()
+
+        # Insert new case data into the 'cases' table
+        cursor.execute(f"UPDATE cases SET {field} = ? WHERE id = ?", (value, caseid))
+        conn.commit()
+
+        # Close connections
+        cursor.close()
+        conn.close()
+        
+        logging.info(f"case {caseid} updated field name: {field} , value: {value}")
+        return True
+    except Exception as e:
+        logging.error(f"Error update case: {str(e)}")
+        return False    
+
 #for each clinicArea the function create new entity or updates/appending  the entity with related csv row 
 def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
     logging.info(f"starting Csv_Consolidation_by_clinicArea function")
@@ -43,14 +65,6 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
         clinicalarea = record['clinicalarea']
         if clinicalarea not in grouped_records:
             grouped_records[clinicalarea] = []
-        # Append the page number to the 'pages' column if it does not already exist
-        if 'pages' in record:
-            pages = record['pages'].split(', ')
-            if str(pagenumber) not in pages:
-                pages.append(str(pagenumber))
-            record['pages'] = ', '.join(pages)
-        else:
-            record['pages'] = str(pagenumber)
         grouped_records[clinicalarea].append(record)
     
     # Iterate over grouped records to update or insert into Azure Table Storage
@@ -85,6 +99,15 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             # Encode the CSV string to preserve newlines
             encoded_content_csv = final_content_csv.replace('\n', '\\n')
             entity['contentCsv'] = encoded_content_csv
+            # Update the pages column
+            if 'pages' in entity:
+                pages = entity['pages'].split(', ')
+                if str(pagenumber) not in pages:
+                    pages.append(str(pagenumber))
+                entity['pages'] = ', '.join(pages)
+            else:
+                entity['pages'] = str(pagenumber)
+
             table_client.update_entity(entity, mode=UpdateMode.REPLACE)
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:table updated")
         except ResourceNotFoundError:
@@ -95,7 +118,8 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             new_entity = {
                 "PartitionKey": caseid,
                 "RowKey": row_key,
-                "contentCsv": encoded_content_csv
+                "contentCsv": encoded_content_csv,
+                "pages": str(pagenumber)
             }
             table_client.create_entity(new_entity)
 
@@ -128,7 +152,7 @@ def get_content_analysis_csv(table_name, partition_key, row_key):
         return None
 
 # Update field on specific entity/ row in storage table 
-def update_storage_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2,new_value2):
+def update_entity_field(table_name, partition_key, row_key, field_name, new_value):
     """
     Updates a specific field of an entity in an Azure Storage Table.
 
@@ -153,7 +177,6 @@ def update_storage_entity_field(table_name, partition_key, row_key, field_name, 
 
         # Update the field
         entity[field_name] = new_value
-        entity[field_name2] = new_value2
 
         # Update the entity in the table
         table_client.update_entity(entity, mode=UpdateMode.REPLACE)
@@ -180,3 +203,10 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     content_csv = get_content_analysis_csv("documents", caseid, doc_id)
     logging.info(f"csv content: {content_csv}")
     Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas",pagenumber)
+    #update document status 
+    update_entity_field("documents", caseid, doc_id, "status", 6)
+    if pagenumber==totalpages: #if this is the last page 
+        #update case status 
+        update_case_generic(caseid,"status",9) #update case status to 7 "content analysis done"
+
+
