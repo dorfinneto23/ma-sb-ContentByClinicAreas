@@ -205,8 +205,6 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas",pagenumber)
     #update document status 
     update_entity_field("documents", caseid, doc_id, "status", 6)
-    if pagenumber==totalpages: #if this is the last page 
-        #update case status 
-        update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
+    update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
 
 
