@@ -53,7 +53,7 @@ def update_case_generic(caseid,field,value):
         conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password)
         cursor = conn.cursor()
 
-        # Insert new case data into the 'cases' table
+        # update case
         cursor.execute(f"UPDATE cases SET {field} = ? WHERE id = ?", (value, caseid))
         conn.commit()
 
@@ -227,8 +227,10 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     #update document status 
     update_entity_field("documents", caseid, doc_id, "status", 6)
     pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
+    logging.info(f"total pages: {totalpages}, total pages passed {pages_done}")
     if pages_done==totalpages:
-        update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
+        updateCaseResult = update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
+        logging.info(f"update case result is: {updateCaseResult}")
 
     
 
