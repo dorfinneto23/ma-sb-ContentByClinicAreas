@@ -47,21 +47,21 @@ def count_rows_in_partition( table_name,partition_key):
         return 0
 
 # Generic Function to update case  in the 'cases' table
-def update_case_generic(caseid,field,value):
+def update_case_generic(caseid,field,value,field2,value2):
     try:
         # Establish a connection to the Azure SQL database
         conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password)
         cursor = conn.cursor()
 
         # update case
-        cursor.execute(f"UPDATE cases SET {field} = ? WHERE id = ?", (value, caseid))
+        cursor.execute(f"UPDATE cases SET {field} = ?,{field2} = ? WHERE id = ?", (value,value2, caseid))
         conn.commit()
 
         # Close connections
         cursor.close()
         conn.close()
         
-        logging.info(f"case {caseid} updated field name: {field} , value: {value}")
+        logging.info(f"case {caseid} updated field name: {field} , value: {value} and field name: {field2} , value: {value2}")
         return True
     except Exception as e:
         logging.error(f"Error update case: {str(e)}")
@@ -229,7 +229,7 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
     logging.info(f"total pages: {totalpages}, total pages passed {pages_done}")
     if pages_done==totalpages:
-        updateCaseResult = update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
+        updateCaseResult = update_case_generic(caseid,"status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
         logging.info(f"update case result is: {updateCaseResult}")
 
     
