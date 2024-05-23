@@ -25,6 +25,51 @@ password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
 
+#this function sending service bus event for each clinic area 
+def create_servicebus_event_for_each_RowKey(table_name, caseid):
+    # Create a TableServiceClient object using the connection string
+    service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+    
+    # Get the table client
+    table_client = service_client.get_table_client(table_name=table_name)
+    
+
+    # Query the table for entities with the given PartitionKey
+    entities = table_client.query_entities(f"PartitionKey eq '{caseid}'")
+
+    # Print the RowKey for each entity
+    for entity in entities:
+        #preparing data for service bus
+        data = { 
+                "clinicArea" :entity['RowKey'],
+                "sourceTable" :table_name,
+                "caseid" :caseid
+            } 
+        json_data = json.dumps(data)
+        create_servicebus_event("handleduplicatediagnosis", json_data) #send event to service bus 
+        logging.info(f"create_servicebus_event_for_each_RowKey:event data:{data}")
+    logging.info(f"create_servicebus_event_for_each_RowKey: events sending done")
+
+ #Create event on azure service bus 
+def create_servicebus_event(queue_name, event_data):
+    try:
+        # Create a ServiceBusClient using the connection string
+        servicebus_client = ServiceBusClient.from_connection_string(connection_string_servicebus)
+
+        # Create a sender for the queue
+        sender = servicebus_client.get_queue_sender(queue_name)
+
+        with sender:
+            # Create a ServiceBusMessage object with the event data
+            message = ServiceBusMessage(event_data)
+
+            # Send the message to the queue
+            sender.send_messages(message)
+
+        logging.info("create_servicebus_event:Event created successfully.")
+    
+    except Exception as e:
+        logging.error(f"create_servicebus_event:An error occurred:, {str(e)}")
 
 #  Function check how many rows in partition of azure storage table where status = 6 (ContentByClinicAreas done)
 def count_rows_in_partition( table_name,partition_key):
@@ -231,6 +276,8 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     if pages_done==totalpages:
         updateCaseResult = update_case_generic(caseid,"status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
         logging.info(f"update case result is: {updateCaseResult}")
+        create_servicebus_event_for_each_RowKey("ContentByClinicAreas", caseid)
+        logging.info(f"ContentByClinicAreas: Done")
 
     
 
