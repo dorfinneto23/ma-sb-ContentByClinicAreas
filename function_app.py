@@ -25,6 +25,27 @@ password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
 
+
+#  Function check how many rows in partition of azure storage table where status = 6 (ContentByClinicAreas done)
+def count_rows_in_partition( table_name,partition_key):
+    # Create a TableServiceClient object using the connection string
+    service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+    
+    # Get the table client
+    table_client = service_client.get_table_client(table_name=table_name)
+    
+    # Define the filter query to count entities with the specified partition key and where contentAnalysisCsv is not null or empty
+    filter_query = f"PartitionKey eq '{partition_key}' and status eq 6"
+    
+    # Query the entities and count the number of entities
+    entities = table_client.query_entities(query_filter=filter_query)
+    count = sum(1 for _ in entities)  # Sum up the entities
+    
+    if count>0:
+        return count
+    else:
+        return 0
+
 # Generic Function to update case  in the 'cases' table
 def update_case_generic(caseid,field,value):
     try:
@@ -205,6 +226,10 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas",pagenumber)
     #update document status 
     update_entity_field("documents", caseid, doc_id, "status", 6)
-    update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
+    pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
+    if pages_done==totalpages:
+        update_case_generic(caseid,"status",9) #update case status to 9 "ContentByClinicAreas done"
+
+    
 
 
