@@ -129,9 +129,10 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
     grouped_records = {}
     for record in records:
         clinicalarea = record['clinicalarea']
-        if clinicalarea not in grouped_records:
-            grouped_records[clinicalarea] = []
-        grouped_records[clinicalarea].append(record)
+        if clinicalarea!="Not Specified": #if clinicalarea not defined - jump on it 
+            if clinicalarea not in grouped_records:
+                grouped_records[clinicalarea] = []
+            grouped_records[clinicalarea].append(record)
     
     # Iterate over grouped records to update or insert into Azure Table Storage
     for clinicalarea, records in grouped_records.items():
