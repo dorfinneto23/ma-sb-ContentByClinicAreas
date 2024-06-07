@@ -38,6 +38,7 @@ def save_ContentByClinicAreas(content,caseid,filename):
         destinationPath = f"{basicPath}/ContentByClinicAreas/{filename}"
         blob_client = container_client.upload_blob(name=destinationPath, data=content)
         logging.info(f"the ContentByClinicAreas content file url is: {blob_client.url}")
+        return destinationPath
     
     except Exception as e:
         print("An error occurred:", str(e))
@@ -186,8 +187,8 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             encoded_content_csv = final_content_csv.replace('\n', '\\n')
             #save in azure storage blob 
             filename = f"{row_key}.txt"
-            save_ContentByClinicAreas(encoded_content_csv,caseid,filename)
-            entity['contentCsv'] = encoded_content_csv
+            destinationPath = save_ContentByClinicAreas(encoded_content_csv,caseid,filename)
+            entity['contentCsv'] = destinationPath
             # Update the pages column
             if 'pages' in entity:
                 pages = entity['pages'].split(', ')
