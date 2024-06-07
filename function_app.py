@@ -189,7 +189,7 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             existing_content_csv_path = entity['contentCsv']
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:check if entity existing")
             # Append the new records to the existing CSV content
-            if existing_content_csv.strip():  # Check if existing content is not empty
+            if existing_content_csv_path.strip():  # Check if existing content path is not empty
                 logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity existing")
                 #get content csv from txt file from azure storage
                 existing_content_csv =  get_contentcsv(existing_content_csv_path)
