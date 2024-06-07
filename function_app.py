@@ -186,6 +186,8 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
         try:
             # Try to get the existing entity!!need to change here 
             entity = table_client.get_entity(partition_key=caseid, row_key=row_key)
+            existing_content_csv_path2 = entity.get('contentCsv', None)#new
+            logging.info(f"existing_content_csv_path2: {existing_content_csv_path2}")#new
             existing_content_csv_path = entity['contentCsv']
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:check if entity existing")
             # Append the new records to the existing CSV content
