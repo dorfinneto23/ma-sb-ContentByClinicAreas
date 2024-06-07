@@ -55,11 +55,8 @@ def save_ContentByClinicAreas(content,caseid,filename):
         container_client = blob_service_client.get_container_client(container_name)
         basicPath = f"{main_folder_name}/{folder_name}"
         destinationPath = f"{basicPath}/ContentByClinicAreas/{filename}"
-        #blob_client = container_client.get_blob_client(destinationPath)
-        #blob_client.upload_blob(content, overwrite=True)
         # Upload the blob and overwrite if it already exists
         blob_client = container_client.upload_blob(name=destinationPath, data=content, overwrite=True)
-        #blob_client = container_client.upload_blob(name=destinationPath, data=content,overwrite=True)
         logging.info(f"the ContentByClinicAreas content file url is: {blob_client.url}")
         return destinationPath
     
@@ -193,7 +190,6 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             entity = table_client.get_entity(partition_key=caseid, row_key=row_key)
             existing_content_csv_path2 = entity.get('contentCsv', None)#new
             logging.info(f"existing_content_csv_path2: {existing_content_csv_path2}")#new
-            #existing_content_csv_path = entity['contentCsv']
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:check if entity existing")
             # Append the new records to the existing CSV content
             if existing_content_csv_path2:#existing_content_csv_path.strip():  # Check if existing content path is not empty
