@@ -188,13 +188,13 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             entity = table_client.get_entity(partition_key=caseid, row_key=row_key)
             existing_content_csv_path2 = entity.get('contentCsv', None)#new
             logging.info(f"existing_content_csv_path2: {existing_content_csv_path2}")#new
-            existing_content_csv_path = entity['contentCsv']
+            #existing_content_csv_path = entity['contentCsv']
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:check if entity existing")
             # Append the new records to the existing CSV content
             if existing_content_csv_path2:#existing_content_csv_path.strip():  # Check if existing content path is not empty
                 logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity existing")
                 #get content csv from txt file from azure storage
-                existing_content_csv =  get_contentcsv(existing_content_csv_path)
+                existing_content_csv =  get_contentcsv(existing_content_csv_path2)
                 existing_content_io = io.StringIO(existing_content_csv.replace('\\n', '\n'))
                 existing_csv_reader = csv.DictReader(existing_content_io)
                 combined_output = io.StringIO(newline='')
