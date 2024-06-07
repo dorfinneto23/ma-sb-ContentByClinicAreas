@@ -211,8 +211,8 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             encoded_content_csv = final_content_csv.replace('\n', '\\n')
             #save in azure storage blob 
             filename = f"{row_key}.txt"
-            logging.info(f"fun:Csv_Consolidation_by_clinicArea step2:filename: {filename}")
-            destinationPath = save_ContentByClinicAreas(encoded_content_csv,caseid,filename)
+            logging.info(f"fun:Csv_Consolidation_by_clinicArea step2:filename: {filename},encoded_content_csv: {encoded_content_csv},caseid: {caseid}")
+            destinationPath = save_ContentByClinicAreas(encoded_content_csv,caseid,filename) 
             logging.info(f"fun:Csv_Consolidation_by_clinicArea step2:destinationPath: {destinationPath}")
             entity['contentCsv'] = destinationPath
             # Update the pages column
