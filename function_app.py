@@ -25,6 +25,25 @@ password = os.environ.get('sql_password')
 driver= '{ODBC Driver 18 for SQL Server}'
 
 
+
+#save ContentByClinicAreas content 
+def save_ContentByClinicAreas(content,caseid,filename):
+    try:
+        container_name = "medicalanalysis"
+        main_folder_name = "cases"
+        folder_name="case-"+caseid
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string_blob)
+        container_client = blob_service_client.get_container_client(container_name)
+        basicPath = f"{main_folder_name}/{folder_name}"
+        destinationPath = f"{basicPath}/ContentByClinicAreas/{filename}"
+        blob_client = container_client.upload_blob(name=destinationPath, data=content)
+        logging.info(f"the ContentByClinicAreas content file url is: {blob_client.url}")
+    
+    except Exception as e:
+        print("An error occurred:", str(e))
+
+
+
 #this function sending service bus event for each clinic area 
 def create_servicebus_event_for_each_RowKey(table_name, caseid):
     # Create a TableServiceClient object using the connection string
@@ -165,6 +184,9 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
                 final_content_csv = new_content_csv
             # Encode the CSV string to preserve newlines
             encoded_content_csv = final_content_csv.replace('\n', '\\n')
+            #save in azure storage blob 
+            filename = f"{row_key}.txt"
+            save_ContentByClinicAreas(encoded_content_csv,caseid,filename)
             entity['contentCsv'] = encoded_content_csv
             # Update the pages column
             if 'pages' in entity:
@@ -191,15 +213,7 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             table_client.create_entity(new_entity)
 
 def get_content_analysis_csv(table_name, partition_key, row_key):
-    """
-    Retrieve the 'contentAnalysisCsv' field from the specified Azure Storage Table.
 
-    :param table_name: Name of the table.
-    :param partition_key: PartitionKey of the entity.
-    :param row_key: RowKey of the entity.
-    :param connection_string: Connection string for the Azure Storage account.
-    :return: The value of the 'contentAnalysisCsv' field or None if not found.
-    """
     try:
         # Create a TableServiceClient using the connection string
         service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
@@ -220,18 +234,7 @@ def get_content_analysis_csv(table_name, partition_key, row_key):
 
 # Update field on specific entity/ row in storage table 
 def update_entity_field(table_name, partition_key, row_key, field_name, new_value):
-    """
-    Updates a specific field of an entity in an Azure Storage Table.
 
-    Parameters:
-    - account_name: str, the name of the Azure Storage account
-    - account_key: str, the key for the Azure Storage account
-    - table_name: str, the name of the table
-    - partition_key: str, the PartitionKey of the entity
-    - row_key: str, the RowKey of the entity
-    - field_name: str, the name of the field to update
-    - new_value: the new value to set for the field
-    """
     try:
         # Create a TableServiceClient using the connection string
         table_service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
