@@ -26,6 +26,24 @@ driver= '{ODBC Driver 18 for SQL Server}'
 
 
 
+# get content csv from azure storage 
+def get_contentcsv(path):
+    try:
+        logging.info(f"get_contentcsv function strating, path value: {path}")
+        container_name = "medicalanalysis"
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string_blob)
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(path)
+        download_stream = blob_client.download_blob()
+        filecontent  = download_stream.read().decode('utf-8')
+        logging.info(f"get_contentcsv: data from the txt file is {filecontent}")
+        return filecontent
+    except Exception as e:
+        logging.error(f"get_contentcsv: Error update case: {str(e)}")
+        return None    
+
+
+
 #save ContentByClinicAreas content 
 def save_ContentByClinicAreas(content,caseid,filename):
     try:
@@ -168,11 +186,13 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
         try:
             # Try to get the existing entity!!need to change here 
             entity = table_client.get_entity(partition_key=caseid, row_key=row_key)
-            existing_content_csv = entity['contentCsv']
+            existing_content_csv_path = entity['contentCsv']
             logging.info(f"fun:Csv_Consolidation_by_clinicArea:check if entity existing")
             # Append the new records to the existing CSV content
             if existing_content_csv.strip():  # Check if existing content is not empty
                 logging.info(f"fun:Csv_Consolidation_by_clinicArea:entity existing")
+                #get content csv from txt file from azure storage
+                existing_content_csv =  get_contentcsv(existing_content_csv_path)
                 existing_content_io = io.StringIO(existing_content_csv.replace('\\n', '\n'))
                 existing_csv_reader = csv.DictReader(existing_content_io)
                 combined_output = io.StringIO(newline='')
