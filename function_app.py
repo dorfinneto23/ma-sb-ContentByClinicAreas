@@ -55,8 +55,10 @@ def save_ContentByClinicAreas(content,caseid,filename):
         container_client = blob_service_client.get_container_client(container_name)
         basicPath = f"{main_folder_name}/{folder_name}"
         destinationPath = f"{basicPath}/ContentByClinicAreas/{filename}"
-        blob_client = container_client.get_blob_client(destinationPath)
-        blob_client.upload_blob(content, overwrite=True)
+        #blob_client = container_client.get_blob_client(destinationPath)
+        #blob_client.upload_blob(content, overwrite=True)
+        # Upload the blob and overwrite if it already exists
+        blob_client = container_client.upload_blob(name=destinationPath, data=content, overwrite=True)
         #blob_client = container_client.upload_blob(name=destinationPath, data=content,overwrite=True)
         logging.info(f"the ContentByClinicAreas content file url is: {blob_client.url}")
         return destinationPath
