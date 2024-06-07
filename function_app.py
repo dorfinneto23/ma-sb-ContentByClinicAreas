@@ -47,6 +47,7 @@ def get_contentcsv(path):
 #save ContentByClinicAreas content 
 def save_ContentByClinicAreas(content,caseid,filename):
     try:
+        logging.info(f"save_ContentByClinicAreas start, content: {content},caseid: {caseid},filename: {filename}")
         container_name = "medicalanalysis"
         main_folder_name = "cases"
         folder_name="case-"+caseid
