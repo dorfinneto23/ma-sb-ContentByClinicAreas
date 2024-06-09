@@ -243,7 +243,7 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             }
             table_client.create_entity(new_entity)
 
-def get_content_analysis_csv(table_name, partition_key, row_key):
+def get_content_analysis_csv_path(table_name, partition_key, row_key):
 
     try:
         # Create a TableServiceClient using the connection string
@@ -256,9 +256,8 @@ def get_content_analysis_csv(table_name, partition_key, row_key):
         entity = table_client.get_entity(partition_key=partition_key, row_key=row_key)
 
         # Return the value of 'contentAnalysisCsv' field
-        encoded_content_csv = entity.get('contentAnalysisCsv')
-        retrieved_csv = encoded_content_csv.replace('\\n', '\n') 
-        return retrieved_csv
+        content_csv = entity.get('contentAnalysisCsv')
+        return content_csv
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
@@ -298,12 +297,13 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     message_data_dict = json.loads(message_data)
     caseid = message_data_dict['caseid']
     doc_id = message_data_dict['doc_id']
-    storageTable = message_data_dict['storageTable']
     pagenumber = message_data_dict['pagenumber']
     totalpages = message_data_dict['totalpages']
-    content_csv = get_content_analysis_csv("documents", caseid, doc_id)
+    content_csv_path = get_content_analysis_csv_path("documents", caseid, doc_id)
+    content_csv = get_contentcsv(content_csv_path)
     logging.info(f"csv content: {content_csv}")
-    Csv_Consolidation_by_clinicArea(content_csv,caseid,"ContentByClinicAreas",pagenumber)
+    retrieved_csv = content_csv.replace('\\n', '\n')
+    Csv_Consolidation_by_clinicArea(retrieved_csv,caseid,"ContentByClinicAreas",pagenumber)
     #update document status 
     update_entity_field("documents", caseid, doc_id, "status", 6)
     pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
