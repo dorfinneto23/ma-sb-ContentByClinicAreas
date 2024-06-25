@@ -4,7 +4,6 @@ import os #in order to get parameters values from azure function app enviroment 
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient # in order to use azure container storage
 import io # in order to download pdf to memory and write into memory without disk permission needed 
 import json # in order to use json 
-import pyodbc #for sql connections 
 from azure.servicebus import ServiceBusClient, ServiceBusMessage # in order to use azure service bus 
 from openai import AzureOpenAI #for using openai services 
 from azure.data.tables import TableServiceClient, TableClient, UpdateMode # in order to use azure storage table  
@@ -16,13 +15,6 @@ connection_string_blob = os.environ.get('BlobStorageConnString')
 
 #Azure service bus connection string 
 connection_string_servicebus = os.environ.get('servicebusConnectionString')
-
-# Define connection details
-server = 'medicalanalysis-sqlserver.database.windows.net'
-database = 'medicalanalysis'
-username = os.environ.get('sql_username')
-password = os.environ.get('sql_password')
-driver= '{ODBC Driver 18 for SQL Server}'
 
 
 
@@ -157,26 +149,6 @@ def count_rows_in_partition( table_name,partition_key):
     else:
         return 0
 
-# Generic Function to update case  in the 'cases' table
-def update_case_generic(caseid,field,value,field2,value2):
-    try:
-        # Establish a connection to the Azure SQL database
-        conn = pyodbc.connect('DRIVER='+driver+';SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password)
-        cursor = conn.cursor()
-
-        # update case
-        cursor.execute(f"UPDATE cases SET {field} = ?,{field2} = ? WHERE id = ?", (value,value2, caseid))
-        conn.commit()
-
-        # Close connections
-        cursor.close()
-        conn.close()
-        
-        logging.info(f"case {caseid} updated field name: {field} , value: {value} and field name: {field2} , value: {value2}")
-        return True
-    except Exception as e:
-        logging.error(f"Error update case: {str(e)}")
-        return False    
 
 #for each clinicArea the function create new entity or updates/appending  the entity with related csv row 
 def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
@@ -336,9 +308,7 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     completed_precetage = (pages_done/totalpages)*100
     logging.info(f"total pages: {totalpages}, total pages passed {pages_done},completed_precetage:{completed_precetage}%")
     if pages_done==totalpages:
-        updateCaseResult = update_case_generic(caseid,"status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
         update_cases_entity_field("cases", caseid, "1", "status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
-        logging.info(f"update case result is: {updateCaseResult}")
         create_servicebus_event_for_each_RowKey("ContentByClinicAreas", caseid)
         logging.info(f"ContentByClinicAreas: Done")
 
