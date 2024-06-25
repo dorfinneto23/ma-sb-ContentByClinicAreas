@@ -27,7 +27,7 @@ driver= '{ODBC Driver 18 for SQL Server}'
 
 
 # Update field on specific entity/ row in storage table 
-def update_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2, new_value2):
+def update_cases_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2, new_value2):
 
     try:
         # Create a TableServiceClient using the connection string
@@ -45,7 +45,7 @@ def update_entity_field(table_name, partition_key, row_key, field_name, new_valu
 
         # Update the entity in the table
         table_client.update_entity(entity, mode=UpdateMode.REPLACE)
-        logging.info(f"update_entity_field:Entity updated successfully.")
+        logging.info(f"update_cases_entity_field:Entity updated successfully.")
 
     except ResourceNotFoundError:
         logging.info(f"The entity with PartitionKey '{partition_key}' and RowKey '{row_key}' was not found.")
@@ -337,7 +337,7 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     logging.info(f"total pages: {totalpages}, total pages passed {pages_done},completed_precetage:{completed_precetage}%")
     if pages_done==totalpages:
         updateCaseResult = update_case_generic(caseid,"status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
-        update_entity_field("cases", caseid, "1", "status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
+        update_cases_entity_field("cases", caseid, "1", "status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
         logging.info(f"update case result is: {updateCaseResult}")
         create_servicebus_event_for_each_RowKey("ContentByClinicAreas", caseid)
         logging.info(f"ContentByClinicAreas: Done")
