@@ -26,6 +26,32 @@ driver= '{ODBC Driver 18 for SQL Server}'
 
 
 
+# Update field on specific entity/ row in storage table 
+def update_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2, new_value2):
+
+    try:
+        # Create a TableServiceClient using the connection string
+        table_service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+
+        # Get a TableClient
+        table_client = table_service_client.get_table_client(table_name)
+
+        # Retrieve the entity
+        entity = table_client.get_entity(partition_key, row_key)
+
+        # Update the field
+        entity[field_name] = new_value
+        entity[field_name2] = new_value2
+
+        # Update the entity in the table
+        table_client.update_entity(entity, mode=UpdateMode.REPLACE)
+        logging.info(f"update_entity_field:Entity updated successfully.")
+
+    except ResourceNotFoundError:
+        logging.info(f"The entity with PartitionKey '{partition_key}' and RowKey '{row_key}' was not found.")
+    except Exception as e:
+        logging.info(f"An error occurred: {e}")
+
 # get content csv path from azure table storage 
 def get_contentcsv(path):
     try:
@@ -307,9 +333,11 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     #update document status 
     update_entity_field("documents", caseid, doc_id, "status", 6)
     pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
-    logging.info(f"total pages: {totalpages}, total pages passed {pages_done}")
+    completed_precetage = (pages_done/totalpages)*100
+    logging.info(f"total pages: {totalpages}, total pages passed {pages_done},completed_precetage:{completed_precetage}%")
     if pages_done==totalpages:
         updateCaseResult = update_case_generic(caseid,"status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
+        update_entity_field("cases", caseid, "1", "status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
         logging.info(f"update case result is: {updateCaseResult}")
         create_servicebus_event_for_each_RowKey("ContentByClinicAreas", caseid)
         logging.info(f"ContentByClinicAreas: Done")
