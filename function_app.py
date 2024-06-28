@@ -104,7 +104,10 @@ def create_servicebus_event_for_each_RowKey(table_name, caseid):
                 "caseid" :caseid
             } 
         json_data = json.dumps(data)
+        #create service bus event for handleduplicatediagnosis
         create_servicebus_event("handleduplicatediagnosis", json_data) #send event to service bus 
+        #create service bus event for diagnosiscollector
+        create_servicebus_event("diagnosiscollector", json_data) #send event to service bus 
         logging.info(f"create_servicebus_event_for_each_RowKey:event data:{data}")
     logging.info(f"create_servicebus_event_for_each_RowKey: events sending done")
 
