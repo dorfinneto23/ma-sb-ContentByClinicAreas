@@ -236,7 +236,6 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
             destinationPath = save_ContentByClinicAreas(encoded_content_csv,caseid,filename) 
             logging.info(f"fun:Csv_Consolidation_by_clinicArea step2:destinationPath: {destinationPath}")
             entity['contentCsv'] = destinationPath
-            entity['status'] = 1
             # Update the pages column
             if 'pages' in entity:
                 pages = entity['pages'].split(', ')
@@ -260,7 +259,8 @@ def Csv_Consolidation_by_clinicArea(csv_string,caseid,table_name,pagenumber):
                 "PartitionKey": caseid,
                 "RowKey": row_key,
                 "contentCsv": destinationPath,
-                "pages": str(pagenumber)
+                "pages": str(pagenumber),
+                "status": 1
             }
             table_client.create_entity(new_entity)
 
