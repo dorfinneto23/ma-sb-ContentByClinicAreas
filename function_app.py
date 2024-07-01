@@ -18,6 +18,25 @@ connection_string_servicebus = os.environ.get('servicebusConnectionString')
 
 
 
+def get_doc_status(table_name, partition_key, row_key):
+
+    try:
+        # Create a TableServiceClient using the connection string
+        service_client = TableServiceClient.from_connection_string(conn_str=connection_string_blob)
+
+        # Get a TableClient for the specified table
+        table_client = service_client.get_table_client(table_name=table_name)
+
+        # Retrieve the entity using PartitionKey and RowKey
+        entity = table_client.get_entity(partition_key=partition_key, row_key=row_key)
+
+        # Return the value of 'contentAnalysisCsv' field
+        status = entity.get('status')
+        return status
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
 # Update field on specific entity/ row in storage table 
 def update_cases_entity_field(table_name, partition_key, row_key, field_name, new_value,field_name2, new_value2):
 
@@ -300,20 +319,25 @@ def ContentByClinicAreas(azservicebus: func.ServiceBusMessage):
     doc_id = message_data_dict['doc_id']
     pagenumber = message_data_dict['pagenumber']
     totalpages = message_data_dict['totalpages']
-    content_csv_path = get_content_analysis_csv_path("documents", caseid, doc_id)
-    content_csv = get_contentcsv(content_csv_path)
-    logging.info(f"csv content: {content_csv}")
-    retrieved_csv = content_csv.replace('\\n', '\n')
-    Csv_Consolidation_by_clinicArea(retrieved_csv,caseid,"ContentByClinicAreas",pagenumber)
-    #update document status 
-    update_entity_field("documents", caseid, doc_id, "status", 6)
-    pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
-    completed_precetage = (pages_done/totalpages)*100
-    logging.info(f"total pages: {totalpages}, total pages passed {pages_done},completed_precetage:{completed_precetage}%")
-    if pages_done==totalpages:
-        update_cases_entity_field("cases", caseid, "1", "status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
-        create_servicebus_event_for_each_RowKey("ContentByClinicAreas", caseid)
-        logging.info(f"ContentByClinicAreas: Done")
+    status  = get_doc_status("documents", caseid, doc_id)
+    #if document already passeed , jump on it 
+    if status!=6:
+        content_csv_path = get_content_analysis_csv_path("documents", caseid, doc_id)
+        content_csv = get_contentcsv(content_csv_path)
+        logging.info(f"csv content: {content_csv}")
+        retrieved_csv = content_csv.replace('\\n', '\n')
+        Csv_Consolidation_by_clinicArea(retrieved_csv,caseid,"ContentByClinicAreas",pagenumber)
+        #update document status 
+        update_entity_field("documents", caseid, doc_id, "status", 6)
+        pages_done = count_rows_in_partition( "documents",caseid) # check how many entities finished this process 
+        completed_precetage = (pages_done/totalpages)*100
+        logging.info(f"total pages: {totalpages}, total pages passed {pages_done},completed_precetage:{completed_precetage}%")
+        if pages_done==totalpages:
+            update_cases_entity_field("cases", caseid, "1", "status",9,"contentByClinicAreas",1) #update case status to 9 "ContentByClinicAreas done"
+            create_servicebus_event_for_each_RowKey("ContentByClinicAreas", caseid)
+            logging.info(f"ContentByClinicAreas: Done")
+    else:
+        logging.info(f"the document: {doc_id} of case:{caseid} already passed this process")
 
     
 
